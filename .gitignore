@@ -1,0 +1,23 @@
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.ipynb_checkpoints/
+
+# Data files (research measurements)
+*.xls
+*.xlsx
+*.csv
+
+# Graphic outputs
+*.svg
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.bmp
+
+# OS specific files
+.DS_Store
+Thumbs.db

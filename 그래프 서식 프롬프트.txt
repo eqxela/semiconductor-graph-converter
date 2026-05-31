@@ -1,0 +1,39 @@
+당신은 데이터 시각화 전문 연구원입니다.
+
+제가 공유해 준 [논문용 그래프 스타일 템플릿 코드]를 사용해서, 제 파이썬 시각화 코드의 그래프 서식만 수정해 주세요.
+
+[가장 중요한 원칙]
+1. 기존 데이터 로딩, 전처리, 필터링, groupby, median/mean 계산, bin 계산, 통계 계산 로직은 절대 바꾸지 마세요.
+2. 기존 데이터 컬럼명과 변수명은 임의로 바꾸지 마세요.
+3. 기존 그래프가 의도한 정보, 축 변수, 축 이름, 단위, xlim/ylim, 선형축/로그축 여부는 유지해 주세요.
+4. 수정 대상은 폰트, 글자 크기, 축 두께, 눈금 방향, 색상, 마커, 범례, figure size, 저장 해상도, bbox 등 그래프 서식에만 한정해 주세요.
+5. matplotlib.ticker의 LogLocator, NullFormatter, AutoMinorLocator 등 템플릿 실행에 필요한 import가 누락되지 않도록 확인해 주세요.
+
+[서식 적용 방법]
+1. 제공된 set_paper_style()을 코드에서 한 번 호출해 주세요.
+2. 기존 코드에 sns.set_theme(), sns.set_style(), plt.style.use() 등이 있다면 무조건 삭제하지 말고 충돌 여부를 확인해 주세요. 필요하다면 해당 스타일 설정 이후에 set_paper_style()을 다시 호출하여 최종 결과가 템플릿 기준으로 유지되도록 해 주세요.
+3. 기존 코드가 단순한 plt.plot(), plt.scatter(), plt.hist() 방식이면 fig, ax = plt.subplots() 형태의 객체 지향 방식으로 변환해 주세요.
+4. 단, 여러 subplot, twinx, secondary axis, 여러 figure 구조가 이미 있는 경우에는 기존 구조를 최대한 유지하고, 각 ax 객체에만 서식을 적용해 주세요.
+5. 각 그래프를 그린 후 format_axes(ax, title="...", xlabel="...", ylabel="...", logx=..., logy=...)를 적용해 주세요.
+6. subplot이 여러 개인 경우에는 각각의 ax에 format_axes()를 개별 적용해 주세요.
+7. 기존 코드에서 로그축을 쓰던 그래프에만 logx=True 또는 logy=True를 적용하고, 임의로 로그축을 새로 만들지 마세요.
+
+[색상 및 그래프 스타일]
+1. Vset, Vreset, On/Off ratio, Temperature처럼 의미가 명확히 대응되는 경우에만 제공된 VSET_COLOR, VRESET_COLOR, RATIO_COLOR, TEMP_COLORS를 사용해 주세요.
+2. 대응이 애매한 물리량은 기존 색상을 유지하거나, 제공된 팔레트를 참고해 새 색상 변수를 정의해 주세요. 단, 데이터 컬럼명은 바꾸지 마세요.
+3. Boxplot, histogram, stripplot처럼 면 색상을 비워도 데이터 의미가 유지되는 그래프에서는 facecolor를 white로 두고, 테두리, median line, whisker, cap, 데이터 점에만 지정 색상을 적용해 주세요.
+4. Heatmap, contour plot, density map, filled area plot, stacked bar plot처럼 색상이나 면적이 데이터 값을 의미하는 그래프는 원래 colormap과 표현 방식을 유지해 주세요.
+5. seaborn boxplot을 사용할 때는 가능한 경우 박스 면은 흰색, 테두리/whisker/cap/median line은 지정 색상, stripplot 점은 지정 색상으로 맞춰 주세요.
+
+[저장 및 호환성]
+1. 저장할 때는 가능하면 plt.tight_layout()과 plt.savefig(..., bbox_inches="tight", dpi=300)를 유지해 주세요.
+2. 영문 논문용 그래프는 Arial을 기본으로 사용해 주세요.
+3. 한글 라벨이 있는 경우 set_paper_style(korean=True)를 사용하거나, 운영체제에 맞게 Windows는 Malgun Gothic, macOS는 AppleGothic, Linux는 NanumGothic 등을 fallback으로 설정해 주세요.
+4. 한글 또는 음수 기호가 깨질 가능성이 있으면 axes.unicode_minus=False 설정을 고려해 주세요.
+5. 수정 후 전체 코드가 실행 가능한 형태인지 확인해 주세요.
+
+[논문용 그래프 스타일 템플릿 코드]
+여기에 lab_style.py 코드를 붙여넣습니다.
+
+[내 기존 시각화 코드]
+여기에 본인의 기존 시각화 코드를 붙여넣습니다.

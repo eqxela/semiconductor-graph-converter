@@ -1,0 +1,92 @@
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import numpy as np
+from matplotlib.ticker import LogLocator, NullFormatter, AutoMinorLocator
+
+# =========================================================
+# 1. 색상 팔레트 설정
+# =========================================================
+VSET_COLOR = "#D62728"
+VRESET_COLOR = "#2F4EA2"
+RATIO_COLOR = "#1F4EAA"
+
+TEMP_COLORS = {
+    "As-dep": "#7F7F7F",
+    "50C":    "#4B0082",
+    "100C":   "#0000FF",
+    "150C":   "#008000",
+    "200C":   "#FF8C00",
+    "250C":   "#FF0000"
+}
+
+# =========================================================
+# 2. 폰트 및 기본 그래프 서식 세팅
+# =========================================================
+def set_paper_style():
+    mpl.rcParams.update({
+        "font.family": "Arial",               
+        "font.size": 13,                      
+        "axes.labelsize": 15,                 
+        "axes.titlesize": 16,                 
+        "xtick.labelsize": 13,                
+        "ytick.labelsize": 13,                
+        "legend.fontsize": 11,                
+        "axes.linewidth": 1.8,                
+        "lines.linewidth": 2.0,               
+        "figure.facecolor": "white",          
+        "axes.facecolor": "white",            
+        "savefig.facecolor": "white",         
+        "savefig.dpi": 300,                   
+        "xtick.direction": "in",              
+        "ytick.direction": "in",              
+        "xtick.major.size": 6,                
+        "ytick.major.size": 6,                
+        "xtick.minor.size": 3,                
+        "ytick.minor.size": 3,                
+        "xtick.major.width": 1.4,             
+        "ytick.major.width": 1.4,             
+        "xtick.minor.width": 1.0,             
+        "ytick.minor.width": 1.0,             
+        "xtick.top": True,                    
+        "ytick.right": True,                  
+        "legend.frameon": False,              
+        "mathtext.fontset": "custom",         
+        "mathtext.rm": "Arial",
+        "mathtext.it": "Arial:italic",
+        "mathtext.bf": "Arial:bold",
+    })
+
+# =========================================================
+# 3. 개별 축 디테일 설정 함수
+# =========================================================
+def format_axes(ax, title=None, xlabel=None, ylabel=None, logx=False, logy=False):
+    if title is not None:
+        ax.set_title(title, pad=10)
+    if xlabel is not None:
+        ax.set_xlabel(xlabel, labelpad=8)
+    if ylabel is not None:
+        ax.set_ylabel(ylabel, labelpad=8)
+
+    if logx:
+        ax.set_xscale("log")
+        ax.xaxis.set_major_locator(LogLocator(base=10.0))
+        ax.xaxis.set_minor_locator(LogLocator(base=10.0, subs=np.arange(2, 10)))
+        ax.xaxis.set_minor_formatter(NullFormatter())
+    else:
+        ax.xaxis.set_minor_locator(AutoMinorLocator())
+
+    if logy:
+        ax.set_yscale("log")
+        ax.yaxis.set_major_locator(LogLocator(base=10.0))
+        ax.yaxis.set_minor_locator(LogLocator(base=10.0, subs=np.arange(2, 10)))
+        ax.yaxis.set_minor_formatter(NullFormatter())
+    else:
+        ax.yaxis.set_minor_locator(AutoMinorLocator())
+
+    ax.tick_params(
+        axis="both", which="both", direction="in",
+        top=True, right=True, labeltop=False, labelright=False
+    )
+    ax.grid(False)
+    for spine in ax.spines.values():
+        spine.set_linewidth(1.8)
