@@ -49,31 +49,59 @@ from tkinter import ttk
 VSET_COLOR = "#D62728"    # Red (after annealing)
 VRESET_COLOR = "#2F4EA2"  # Blue (before annealing)
 
-def set_paper_style():
+def set_paper_style(presentation_mode=False):
+    if presentation_mode:
+        font_size = 16
+        label_size = 20
+        title_size = 20
+        tick_size = 18
+        legend_size = 14
+        line_width = 4.0
+        axes_width = 2.5
+        major_tick_size = 9
+        minor_tick_size = 4.5
+        major_tick_width = 2.0
+        minor_tick_width = 1.4
+        marker_size = 10
+    else:
+        font_size = 14
+        label_size = 17
+        title_size = 18
+        tick_size = 15
+        legend_size = 12
+        line_width = 2.8
+        axes_width = 2.0
+        major_tick_size = 7
+        minor_tick_size = 3.5
+        major_tick_width = 1.6
+        minor_tick_width = 1.1
+        marker_size = 8
+
     mpl.rcParams.update({
         "font.family": "Arial",               
-        "font.size": 13,                      
-        "axes.labelsize": 15,                 
-        "axes.titlesize": 16,                 
-        "xtick.labelsize": 13,                
-        "ytick.labelsize": 13,                
-        "legend.fontsize": 11,                
-        "axes.linewidth": 1.8,                
-        "lines.linewidth": 2.0,               
+        "font.size": font_size,                      
+        "axes.labelsize": label_size,                 
+        "axes.titlesize": title_size,                 
+        "xtick.labelsize": tick_size,                
+        "ytick.labelsize": tick_size,                
+        "legend.fontsize": legend_size,                
+        "axes.linewidth": axes_width,                
+        "lines.linewidth": line_width,               
+        "lines.markersize": marker_size,
         "figure.facecolor": "white",          
         "axes.facecolor": "white",            
         "savefig.facecolor": "white",         
         "savefig.dpi": 300,                   
         "xtick.direction": "in",              
         "ytick.direction": "in",              
-        "xtick.major.size": 6,                
-        "ytick.major.size": 6,                
-        "xtick.minor.size": 3,                
-        "ytick.minor.size": 3,                
-        "xtick.major.width": 1.4,             
-        "ytick.major.width": 1.4,             
-        "xtick.minor.width": 1.0,             
-        "ytick.minor.width": 1.0,             
+        "xtick.major.size": major_tick_size,                
+        "ytick.major.size": major_tick_size,                
+        "xtick.minor.size": minor_tick_size,                
+        "ytick.minor.size": minor_tick_size,                
+        "xtick.major.width": major_tick_width,             
+        "ytick.major.width": major_tick_width,             
+        "xtick.minor.width": minor_tick_width,             
+        "ytick.minor.width": minor_tick_width,             
         "xtick.top": True,                    
         "ytick.right": True,                  
         "legend.frameon": False,              
@@ -85,13 +113,24 @@ def set_paper_style():
         "svg.fonttype": "none"         # SVG에서 텍스트를 path가 아닌 실제 텍스트로 저장 (일러스트레이터 편집용)
     })
 
-def format_axes(ax, title=None, xlabel=None, ylabel=None, logx=False, logy=False, is_twin=False):
+def format_axes(ax, title=None, xlabel=None, ylabel=None, logx=False, logy=False, is_twin=False, y_data_for_spacing=None, presentation_mode=False):
     if title is not None:
-        ax.set_title(title, pad=10)
+        title_weight = 'bold' if presentation_mode else 'normal'
+        ax.set_title(title, pad=10, fontweight=title_weight)
+    
+    # Keyword list for bold labels
+    voltage_kws = ['voltage', 'v_g', 'v_d', 'v_ds', 'v_gs', '전압']
+    current_kws = ['current', 'i_d', 'i_g', 'i_ds', '전류']
+    cap_kws = ['capacitance', 'cp', 'cs', 'c_p', 'c_s', '커패시턴스', '정전용량']
+    
     if xlabel is not None:
-        ax.set_xlabel(xlabel, labelpad=8)
+        is_bold = any(k in xlabel.lower() for k in voltage_kws + current_kws + cap_kws) or presentation_mode
+        weight = 'bold' if is_bold else 'normal'
+        ax.set_xlabel(xlabel, labelpad=8, fontweight=weight)
     if ylabel is not None:
-        ax.set_ylabel(ylabel, labelpad=8)
+        is_bold = any(k in ylabel.lower() for k in voltage_kws + current_kws + cap_kws) or presentation_mode
+        weight = 'bold' if is_bold else 'normal'
+        ax.set_ylabel(ylabel, labelpad=8, fontweight=weight)
 
     if logx:
         ax.set_xscale("log")
@@ -110,9 +149,20 @@ def format_axes(ax, title=None, xlabel=None, ylabel=None, logx=False, logy=False
     if logy:
         ax.set_yscale("log")
         ymin, ymax = ax.get_ylim()
+        
+        # log scale에서 너무 작은 current 영역이 뭉개지지 않도록 spacing 최적화
+        if y_data_for_spacing is not None:
+            flat_y = np.concatenate([np.atleast_1d(y) for y in y_data_for_spacing])
+            flat_y_clean = flat_y[~np.isnan(flat_y) & (flat_y > 0)]
+            if len(flat_y_clean) > 0:
+                data_min = np.percentile(flat_y_clean, 2) # 2nd percentile for noise filtering
+                ymin = max(data_min, 1e-14)
+        
         if ymin > 0 and ymax > 0:
             ymin_log = 10 ** np.floor(np.log10(ymin))
             ymax_log = 10 ** np.ceil(np.log10(ymax))
+            if ymin_log < 1e-14:
+                ymin_log = 1e-14
             ax.set_ylim(ymin_log, ymax_log)
         ax.yaxis.set_major_locator(LogLocator(base=10.0))
         ax.yaxis.set_minor_locator(LogLocator(base=10.0, subs=np.arange(2, 10)))
@@ -136,7 +186,7 @@ def format_axes(ax, title=None, xlabel=None, ylabel=None, logx=False, logy=False
         )
     ax.grid(False)
     for spine in ax.spines.values():
-        spine.set_linewidth(1.8)
+        spine.set_linewidth(mpl.rcParams['axes.linewidth'])
 
 # =========================================================
 # 단위 변환 및 자동 스케일링 헬퍼 함수
@@ -206,6 +256,41 @@ def get_output_svg_path(file_path, plot_type):
             name_no_ext = name_no_ext + target_suffix
             
     return os.path.join(dir_name, name_no_ext + '.svg')
+
+# =========================================================
+# sweep 데이터 분리 및 방향 표시 헬퍼 함수
+# =========================================================
+def split_sweep_data(x_data, y_data):
+    n = len(x_data)
+    if n < 5:
+        return False, x_data, y_data, None, None
+    
+    max_idx = np.argmax(x_data)
+    min_idx = np.argmin(x_data)
+    
+    turning_idx = max_idx if abs(max_idx - n//2) < abs(min_idx - n//2) else min_idx
+    
+    if 2 < turning_idx < n - 3:
+        first_half_diff = np.mean(np.diff(x_data[:turning_idx+1]))
+        second_half_diff = np.mean(np.diff(x_data[turning_idx:]))
+        if np.sign(first_half_diff) != np.sign(second_half_diff) and not np.isnan(first_half_diff) and not np.isnan(second_half_diff):
+            return True, x_data[:turning_idx+1], y_data[:turning_idx+1], x_data[turning_idx:], y_data[turning_idx:]
+            
+    return False, x_data, y_data, None, None
+
+def add_arrow_label(ax, x_seg, y_seg, color, presentation_mode=False):
+    x_seg = np.asarray(x_seg)
+    y_seg = np.asarray(y_seg)
+    if len(x_seg) >= 3:
+        mid = len(x_seg) // 2
+        x_val = x_seg[mid]
+        y_val = y_seg[mid]
+        symbol = '▶' if x_seg[mid+1] > x_seg[mid] else '◀'
+        fs = 12 if presentation_mode else 9
+        pad_val = 0.5 if presentation_mode else 0.8
+        # white background bbox to make the arrow pop
+        ax.text(x_val, y_val, symbol, color=color, ha='center', va='center', fontsize=fs,
+                bbox=dict(facecolor='white', edgecolor='none', pad=pad_val, alpha=0.85), zorder=10)
 
 # =========================================================
 # 3. 파일 타입 자동 분석 판별기 (2단계: 컬럼 구조 우선 + 파일명)
@@ -395,8 +480,9 @@ def classify_and_parse(file_path, df):
 # =========================================================
 # 4. 개별 파일 변환 핵심 로직
 # =========================================================
-def process_file(file_path):
+def process_file(file_path, presentation_mode=False):
     print(f"\n변환 중: {os.path.basename(file_path)}")
+    set_paper_style(presentation_mode=presentation_mode)
     
     lower_path = file_path.lower()
     
@@ -499,35 +585,42 @@ def process_file(file_path):
         x_col = info['x_col']
         y_drain = info['y_cols'][0]
         
+        y_data_list = []
+        y_drain_data = np.clip(np.abs(df[y_drain]), 1e-15, None).values
+        y_data_list.append(y_drain_data)
+        
+        y_gate_data = None
         if len(info['y_cols']) > 1:
             y_gate = info['y_cols'][1]
-            # Left axis: Drain Current (I_D) (clipped to avoid log10(0) error)
-            y_drain_data = np.clip(np.abs(df[y_drain]), 1e-15, None)
-            line1 = ax.plot(df[x_col], y_drain_data * scale, color=base_color, label='Drain Current ($I_D$)', linewidth=2.0)
+            y_gate_data = np.clip(np.abs(df[y_gate]), 1e-15, None).values
+            y_data_list.append(y_gate_data)
             
-            # Right axis: Gate Current (I_G) (clipped to avoid log10(0) error)
-            ax2 = ax.twinx()
-            y_gate_data = np.clip(np.abs(df[y_gate]), 1e-15, None)
-            line2 = ax2.plot(df[x_col], y_gate_data * scale, color='#7F7F7F', linestyle='--', label='Gate Current ($I_G$)', linewidth=1.5)
+        # Detect hysteresis
+        is_swept, x_fwd, yd_fwd, x_bwd, yd_bwd = split_sweep_data(df[x_col].values, y_drain_data)
+        
+        line_w = mpl.rcParams['lines.linewidth']
+        if is_swept:
+            # Plot Drain Current Forward & Backward
+            ax.plot(x_fwd, yd_fwd, '-', color=base_color, linewidth=line_w, label='Drain Current ($I_D$) - Fwd')
+            ax.plot(x_bwd, yd_bwd, '-.', color=base_color, linewidth=line_w, label='Drain Current ($I_D$) - Bwd')
             
-            unit_str = unit_suffix if unit_suffix else 'A'
-            ylabel_left = f'Drain Current ($I_D$) ({unit_str})'
-            ylabel_right = f'Gate Current ($I_G$) ({unit_str})'
+            # Add arrows only to Drain Current
+            add_arrow_label(ax, x_fwd, yd_fwd, base_color, presentation_mode=presentation_mode)
+            add_arrow_label(ax, x_bwd, yd_bwd, base_color, presentation_mode=presentation_mode)
             
-            # Format axes
-            format_axes(ax, title=title, xlabel=info['xlabel'], ylabel=ylabel_left, logx=info['logx'], logy=info['logy'])
-            format_axes(ax2, ylabel=ylabel_right, logy=info['logy'], is_twin=True)
-            
-            # Combine legends
-            lines = line1 + line2
-            labels = [l.get_label() for l in lines]
-            ax.legend(lines, labels, loc='best')
+            if y_gate_data is not None:
+                _, _, yg_fwd, _, yg_bwd = split_sweep_data(df[x_col].values, y_gate_data)
+                # Plot Gate Current as thin neutral background lines without direction arrows
+                ax.plot(x_fwd, yg_fwd, '--', color='#7F7F7F', alpha=0.6, linewidth=line_w*0.6, label='Gate Current ($I_G$) - Fwd')
+                ax.plot(x_bwd, yg_bwd, ':', color='#7F7F7F', alpha=0.6, linewidth=line_w*0.6, label='Gate Current ($I_G$) - Bwd')
         else:
-            # Single Y-axis (clipped to avoid log10(0) error)
-            y_drain_data = np.clip(np.abs(df[y_drain]), 1e-15, None)
-            ax.plot(df[x_col], y_drain_data * scale, color=base_color, label='Drain Current ($I_D$)', linewidth=2.0)
-            format_axes(ax, title=title, xlabel=info['xlabel'], ylabel=ylabel_str, logx=info['logx'], logy=info['logy'])
-            ax.legend(loc='best')
+            # Single sweep
+            ax.plot(df[x_col], y_drain_data, '-', color=base_color, linewidth=line_w, label='Drain Current ($I_D$)')
+            if y_gate_data is not None:
+                ax.plot(df[x_col], y_gate_data, '--', color='#7F7F7F', alpha=0.6, linewidth=line_w*0.6, label='Gate Current ($I_G$)')
+        
+        format_axes(ax, title=title, xlabel=info['xlabel'], ylabel=ylabel_str, logx=info['logx'], logy=info['logy'], y_data_for_spacing=y_data_list, presentation_mode=presentation_mode)
+        ax.legend(loc='best')
         
     elif plot_type == 'IV':
         columns = df.columns.tolist()
@@ -546,10 +639,10 @@ def process_file(file_path):
             if i_col in df.columns and v_col in df.columns:
                 vg_val = df[g_col].iloc[0] if g_col in df.columns else None
                 label_str = f"$V_G$ = {vg_val:.0f} V" if vg_val is not None else f"Sweep {i}"
-                ax.plot(df[v_col], df[i_col] * scale, color=colors[i-1], label=label_str, linewidth=1.8)
+                ax.plot(df[v_col], df[i_col] * scale, color=colors[i-1], label=label_str)
                 
-        format_axes(ax, title=title, xlabel=info['xlabel'], ylabel=ylabel_str, logx=info['logx'], logy=info['logy'])
-        ax.legend(loc='best', fontsize=8.5, ncol=2)
+        format_axes(ax, title=title, xlabel=info['xlabel'], ylabel=ylabel_str, logx=info['logx'], logy=info['logy'], presentation_mode=presentation_mode)
+        ax.legend(loc='best', ncol=2)
         
     else:
         x_col = info['x_col']
@@ -558,7 +651,7 @@ def process_file(file_path):
         if len(y_cols) == 1:
             y_col = y_cols[0]
             label_name = 'ON State ($I_D$)' if plot_type == 'Retention' else y_col
-            ax.plot(df[x_col], df[y_col] * scale, color=base_color, label=label_name, linewidth=2.0)
+            ax.plot(df[x_col], df[y_col] * scale, color=base_color, label=label_name)
         else:
             if is_after:
                 colors = [plt.cm.Reds(x) for x in np.linspace(0.4, 0.95, len(y_cols))]
@@ -566,24 +659,26 @@ def process_file(file_path):
                 colors = [plt.cm.Blues(x) for x in np.linspace(0.4, 0.95, len(y_cols))]
                 
             for idx, y_col in enumerate(y_cols):
-                ax.plot(df[x_col], df[y_col] * scale, color=colors[idx], label=y_col, linewidth=1.8)
+                ax.plot(df[x_col], df[y_col] * scale, color=colors[idx], label=y_col)
                 
-        format_axes(ax, title=title, xlabel=info['xlabel'], ylabel=ylabel_str, logx=info['logx'], logy=info['logy'])
+        format_axes(ax, title=title, xlabel=info['xlabel'], ylabel=ylabel_str, logx=info['logx'], logy=info['logy'], presentation_mode=presentation_mode)
         ax.legend(loc='best')
 
-    plt.tight_layout()
+    plt.tight_layout(pad=1.5 if presentation_mode else 1.2)
     
-    # SVG 저장
+    # SVG 및 PDF 저장
     svg_path = get_output_svg_path(file_path, plot_type)
+    pdf_path = os.path.splitext(svg_path)[0] + '.pdf'
     plt.savefig(svg_path, format='svg', bbox_inches='tight')
+    plt.savefig(pdf_path, format='pdf', bbox_inches='tight')
     plt.close(fig)
-    print(f"성공: {os.path.basename(svg_path)}")
+    print(f"성공: {os.path.basename(svg_path)} 및 {os.path.basename(pdf_path)}")
 
 # =========================================================
 # 5. 전체 파일 스캔 및 실행 제어 함수
 # =========================================================
-def run_batch_conversion(search_dir, callback=None):
-    set_paper_style()
+def run_batch_conversion(search_dir, callback=None, presentation_mode=False):
+    set_paper_style(presentation_mode=presentation_mode)
     pattern = os.path.join(search_dir, "**", "*.xls*")
     files = glob.glob(pattern, recursive=True)
     valid_files = sorted([f for f in files if os.path.isfile(f) and not os.path.basename(f).startswith("~$") and os.path.splitext(f)[1] in [".xls", ".xlsx"]])
@@ -595,7 +690,7 @@ def run_batch_conversion(search_dir, callback=None):
     success_count = 0
     for f in valid_files:
         try:
-            process_file(f)
+            process_file(f, presentation_mode=presentation_mode)
             success_count += 1
         except Exception as e:
             print(f"오류 발생 ({os.path.basename(f)}): {e}")
@@ -624,7 +719,7 @@ class AppRedirectText:
 def launch_gui():
     window = tk.Tk()
     window.title("Batch Graph Converter v1.0")
-    window.geometry("600x480")
+    window.geometry("600x520")
     window.configure(bg="#f5f6f8")
     
     style = ttk.Style()
@@ -660,6 +755,14 @@ def launch_gui():
     browse_btn = ttk.Button(path_frame, text="찾아보기...", command=browse_folder)
     browse_btn.pack(side="right", padx=5)
 
+    # 옵션 설정 프레임 (Presentation Preset Mode Checkbox)
+    options_frame = tk.LabelFrame(main_frame, text=" 옵션 설정 (Options) ", font=("Arial", 10, "bold"), bg="#f5f6f8", fg="#2F4EA2", padx=10, pady=5)
+    options_frame.pack(fill="x", pady=5)
+    
+    pres_var = tk.BooleanVar(value=False)
+    pres_chk = tk.Checkbutton(options_frame, text="발표용 (Presentation) 프리셋 모드 적용 (Larger Font, Thicker Line)", variable=pres_var, font=("Arial", 10), bg="#f5f6f8", activebackground="#f5f6f8")
+    pres_chk.pack(anchor="w", padx=5)
+
     log_frame = tk.LabelFrame(main_frame, text=" 실행 로그 (Execution Log) ", font=("Arial", 10, "bold"), bg="#f5f6f8", fg="#2F4EA2", padx=10, pady=10)
     log_frame.pack(fill="both", expand=True, pady=10)
 
@@ -690,7 +793,8 @@ def launch_gui():
                 pass  # In case the window is closed during execution
         
         try:
-            success, total = run_batch_conversion(target, callback=update_gui)
+            is_pres = pres_var.get()
+            success, total = run_batch_conversion(target, callback=update_gui, presentation_mode=is_pres)
             if total == 0:
                 messagebox.showinfo("알림", "선택한 폴더 내에 변환 가능한 엑셀 파일(.xls, .xlsx)이 없습니다.")
             else:
